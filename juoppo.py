@@ -175,23 +175,27 @@ def main():
     # kokonaan kuikkaan.
     user_input = input("Kuka juopottelee? ")
 
+    dbq_userload = f"SELECT * FROM consumer WHERE nick_name LIKE '{user_input}'"
+    dbq_useradd = f"INSERT INTO consumer(nick_name, creation_timestamp) values ('{user_input}', '{datetime.now()}');"
+
     with sqlite3.connect(FILENAME_DB) as db_con:
         db_cur = db_con.cursor()
-        db_q = f"SELECT * FROM consumer WHERE nick_name LIKE '{user_input}'"
-        db_cur.execute(db_q)
+        db_cur.execute(dbq_userload)
         user_data = db_cur.fetchone()
 
         if not user_data:
             logging.info("User data not found for user %s. Creating new user.", user_input)
             db_q = f"INSERT INTO consumer(nick_name, creation_timestamp) values ('{user_input}', '{datetime.now()}');"
-            db_cur.execute(db_q)
+            db_cur.execute(dbq_useradd)
             db_con.commit()
-        else:
-            # Koska SQLite3-rajapinta palauttaa tietokannan tietueet tupleina,
-            # voidaan tehdä tällainen jännä sijoitusoperaatio useampaan
-            # muuttujaan
-            user_id, user_name, user_creation_timestamp = user_data
-            logging.info("Found user %s with id %d created on %s", user_name, user_id, user_creation_timestamp)
+            db_cur.execute(dbq_userload)
+            user_data = db_cur.fetchone()
+
+        # Koska SQLite3-rajapinta palauttaa tietokannan tietueet tupleina,
+        # voidaan tehdä tällainen jännä sijoitusoperaatio useampaan
+        # muuttujaan
+        user_id, user_name, user_creation_timestamp = user_data
+        logging.info("Loaded user %s with id %d created on %s", user_name, user_id, user_creation_timestamp)
 
 
     moar = True # moar main loop iterations!
